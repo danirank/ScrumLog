@@ -29,7 +29,8 @@ public class ScrumLogDbContext(DbContextOptions<ScrumLogDbContext> options) : Db
         modelBuilder.Entity<MeetingParticipant>()
             .HasOne(meetingParticipant => meetingParticipant.Person)
             .WithMany(person => person.MeetingParticipants)
-            .HasForeignKey(meetingParticipant => meetingParticipant.PersonId);
+            .HasForeignKey(meetingParticipant => meetingParticipant.PersonId)
+            .OnDelete(DeleteBehavior.NoAction);
 
         modelBuilder.Entity<DailyMeetingEntry>()
             .HasOne(dailyMeetingEntry => dailyMeetingEntry.Meeting)
@@ -39,6 +40,7 @@ public class ScrumLogDbContext(DbContextOptions<ScrumLogDbContext> options) : Db
         modelBuilder.Entity<DailyMeetingEntry>()
             .HasOne(dailyMeetingEntry => dailyMeetingEntry.Person)
             .WithMany(person => person.DailyMeetingEntries)
-            .HasForeignKey(dailyMeetingEntry => dailyMeetingEntry.PersonId);
+            .HasForeignKey(dailyMeetingEntry => dailyMeetingEntry.PersonId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }
