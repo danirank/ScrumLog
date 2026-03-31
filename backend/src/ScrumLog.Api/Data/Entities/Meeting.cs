@@ -10,9 +10,11 @@ public class Meeting
 
     public MeetingType Type { get; set; }
 
-    public Guid SprintId { get; set; }
+    public MeetingStatus Status { get; set; }
 
-    public Sprint Sprint { get; set; } = null!;
+    public Guid? SprintId { get; set; }
+
+    public Sprint? Sprint { get; set; }
 
     public string? Notes { get; set; }
 

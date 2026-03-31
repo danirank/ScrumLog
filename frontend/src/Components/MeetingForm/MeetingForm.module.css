@@ -1,0 +1,36 @@
+.participantPicker {
+  border: 1px solid var(--input-border);
+  border-radius: 1rem;
+  background: var(--input-background);
+  overflow: hidden;
+}
+
+.summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 0.9rem 1rem;
+  color: var(--heading-text);
+  font-weight: 600;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 0.8rem 0.8rem;
+}
+
+.option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.85rem;
+  background: rgba(255, 248, 240, 0.82);
+  border: 1px solid var(--hairline);
+}

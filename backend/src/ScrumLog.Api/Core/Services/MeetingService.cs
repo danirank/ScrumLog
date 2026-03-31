@@ -15,7 +15,17 @@ public class MeetingService(
             return "Meeting title is required.";
         }
 
-        return await sprintRepository.ExistsAsync(createDto.SprintId) ? null : "Sprint not found.";
+        if (createDto.Type != MeetingType.General && !createDto.SprintId.HasValue)
+        {
+            return "Sprint is required for non-general meetings.";
+        }
+
+        if (createDto.SprintId.HasValue && !await sprintRepository.ExistsAsync(createDto.SprintId.Value))
+        {
+            return "Sprint not found.";
+        }
+
+        return null;
     }
 
     protected override async Task<string?> ValidateUpdateAsync(Guid id, UpdateMeetingDto updateDto)
@@ -25,7 +35,17 @@ public class MeetingService(
             return "Meeting title is required.";
         }
 
-        return await sprintRepository.ExistsAsync(updateDto.SprintId) ? null : "Sprint not found.";
+        if (updateDto.Type != MeetingType.General && !updateDto.SprintId.HasValue)
+        {
+            return "Sprint is required for non-general meetings.";
+        }
+
+        if (updateDto.SprintId.HasValue && !await sprintRepository.ExistsAsync(updateDto.SprintId.Value))
+        {
+            return "Sprint not found.";
+        }
+
+        return null;
     }
 
     protected override MeetingDto MapToDto(Meeting entity)
@@ -36,11 +56,12 @@ public class MeetingService(
             Title = entity.Title,
             Date = entity.Date,
             Type = entity.Type,
+            Status = entity.Status,
             SprintId = entity.SprintId,
             Notes = entity.Notes,
             Decisions = entity.Decisions,
             Actions = entity.Actions,
-            ParticipantIds = entity.Participants.Select(participant => participant.Id).ToList(),
+            ParticipantIds = entity.Participants.Select(participant => participant.PersonId).ToList(),
             DailyMeetingEntryIds = entity.DailyMeetingEntries.Select(entry => entry.Id).ToList()
         };
     }
@@ -53,6 +74,7 @@ public class MeetingService(
             Title = createDto.Title.Trim(),
             Date = createDto.Date,
             Type = createDto.Type,
+            Status = MeetingStatus.Planned,
             SprintId = createDto.SprintId,
             Notes = createDto.Notes,
             Decisions = createDto.Decisions,
@@ -65,6 +87,7 @@ public class MeetingService(
         entity.Title = updateDto.Title.Trim();
         entity.Date = updateDto.Date;
         entity.Type = updateDto.Type;
+        entity.Status = updateDto.Status;
         entity.SprintId = updateDto.SprintId;
         entity.Notes = updateDto.Notes;
         entity.Decisions = updateDto.Decisions;

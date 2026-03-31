@@ -12,7 +12,9 @@ public class MeetingDto
 
     public MeetingType Type { get; set; }
 
-    public Guid SprintId { get; set; }
+    public MeetingStatus Status { get; set; }
+
+    public Guid? SprintId { get; set; }
 
     public string? Notes { get; set; }
 
@@ -33,7 +35,7 @@ public class CreateMeetingDto
 
     public MeetingType Type { get; set; }
 
-    public Guid SprintId { get; set; }
+    public Guid? SprintId { get; set; }
 
     public string? Notes { get; set; }
 
@@ -50,7 +52,9 @@ public class UpdateMeetingDto
 
     public MeetingType Type { get; set; }
 
-    public Guid SprintId { get; set; }
+    public MeetingStatus Status { get; set; }
+
+    public Guid? SprintId { get; set; }
 
     public string? Notes { get; set; }
 

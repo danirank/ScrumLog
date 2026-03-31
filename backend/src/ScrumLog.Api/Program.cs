@@ -9,6 +9,7 @@ using ScrumLog.Api.Data.Interfaces;
 using ScrumLog.Api.Data.Repositorys;
 
 var builder = WebApplication.CreateBuilder(args);
+const string AllowAllCorsPolicy = "AllowAll";
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
@@ -23,6 +24,16 @@ builder.Services.AddSwaggerGen(options =>
         Title = "ScrumLog API",
         Version = "v1",
         Description = "API for managing teams, sprints, meetings, participants, and daily scrum entries."
+    });
+});
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(AllowAllCorsPolicy, policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 builder.Services.AddDbContext<ScrumLogDbContext>(options =>
@@ -54,6 +65,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseCors(AllowAllCorsPolicy);
 
 app.MapControllers();
 

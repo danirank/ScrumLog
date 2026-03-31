@@ -5,5 +5,6 @@ public enum MeetingType
     General = 0,
     Daily = 1,
     Review = 2,
-    Retrospective = 3
+    Retrospective = 3,
+    SprintPlanning = 4
 }
