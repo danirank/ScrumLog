@@ -5,6 +5,7 @@
 - Business logic belongs in services
 - Use async/await everywhere
 - Use DTOs between layers
+- Use interfaces for service layer and repository layer
 - Return ActionResult from controllers
 - Retur generic responseclass from service layer
 - Validate input in services
