@@ -24,7 +24,7 @@ jobs:
         run: dotnet restore backend/ScrumLog.slnx
 
       - name: Build backend
-        run: dotnet build backend/src/ScrumLog.Api/ScrumLog.API.csproj --configuration Release --no-restore
+        run: dotnet build backend/ScrumLog.slnx --configuration Release --no-restore
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
