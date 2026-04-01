@@ -196,17 +196,17 @@ export function MeetingForm(props: MeetingFormProps) {
     return (
       <>
         <h3>Sprint planning details</h3>
-        <FormField label="Agenda">
+        <FormField label="Sprint value">
           <textarea value={props.agenda} onChange={(event) => props.onAgendaChange(event.target.value)} required readOnly={lockedFields.agenda} />
         </FormField>
-        <FormField label="Notes">
-          <textarea value={props.notes} onChange={(event) => props.onNotesChange(event.target.value)} required readOnly={lockedFields.notes} />
-        </FormField>
-        <FormField label="Decisions">
+        <FormField label="Definition of Done (Increment)">
           <textarea value={props.decisions} onChange={(event) => props.onDecisionsChange(event.target.value)} required readOnly={lockedFields.decisions} />
         </FormField>
-        <FormField label="Actions">
+        <FormField label="Sprint Goal">
           <textarea value={props.actions} onChange={(event) => props.onActionsChange(event.target.value)} required readOnly={lockedFields.actions} />
+        </FormField>
+        <FormField label="Notes">
+          <textarea value={props.notes} onChange={(event) => props.onNotesChange(event.target.value)} readOnly={lockedFields.notes} />
         </FormField>
       </>
     );

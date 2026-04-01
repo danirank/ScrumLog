@@ -72,9 +72,34 @@ function parseRetrospectiveMeetingContent(notes: string | null, decisions: strin
   };
 }
 
+function parseSprintPlanningContent(notes: string | null, decisions: string | null) {
+  const sprintValue = notes?.startsWith('Sprint Value:\n')
+    ? notes.split('\n\nSprint Goal:\n')[0]?.replace('Sprint Value:\n', '') ?? ''
+    : '';
+  const sprintGoalSection = notes?.includes('\n\nSprint Goal:\n')
+    ? notes.split('\n\nSprint Goal:\n')[1] ?? ''
+    : '';
+  const sprintGoal = sprintGoalSection.includes('\n\nNotes:\n')
+    ? sprintGoalSection.split('\n\nNotes:\n')[0] ?? ''
+    : sprintGoalSection;
+  const additionalNotes = sprintGoalSection.includes('\n\nNotes:\n')
+    ? sprintGoalSection.split('\n\nNotes:\n')[1] ?? ''
+    : '';
+
+  return {
+    sprintValue,
+    definitionOfDone: decisions?.replace('Definition of Done (Increment):\n', '') ?? '',
+    sprintGoal,
+    notes: additionalNotes,
+  };
+}
+
 export function MeetingExecutionContainer(props: MeetingExecutionContainerProps) {
   const parsedGeneralNotes = parseGeneralMeetingNotes(props.meeting.type === 0 ? props.meeting.notes : null);
-  const parsedSprintPlanningNotes = parseGeneralMeetingNotes(props.meeting.type === 4 ? props.meeting.notes : null);
+  const parsedSprintPlanning = parseSprintPlanningContent(
+    props.meeting.type === 4 ? props.meeting.notes : null,
+    props.meeting.type === 4 ? props.meeting.decisions : null,
+  );
   const parsedReview = parseReviewMeetingContent(
     props.meeting.type === 2 ? props.meeting.notes : null,
     props.meeting.type === 2 ? props.meeting.decisions : null,
@@ -93,13 +118,13 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
   const [participantOptions, setParticipantOptions] = useState<SelectOption[]>([]);
   const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([]);
   const [agenda, setAgenda] = useState(
-    props.meeting.type === 4 ? parsedSprintPlanningNotes.agenda : parsedGeneralNotes.agenda,
+    props.meeting.type === 4 ? parsedSprintPlanning.sprintValue : parsedGeneralNotes.agenda,
   );
   const [notes, setNotes] = useState(
     props.meeting.type === 0
       ? parsedGeneralNotes.notes
       : props.meeting.type === 4
-        ? parsedSprintPlanningNotes.notes
+        ? parsedSprintPlanning.notes
         : props.meeting.type === 2
           ? ''
           : props.meeting.type === 3
@@ -107,10 +132,20 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
             : (props.meeting.notes ?? ''),
   );
   const [decisions, setDecisions] = useState(
-    props.meeting.type === 2 ? '' : (props.meeting.decisions ?? ''),
+    props.meeting.type === 2
+      ? ''
+      : props.meeting.type === 4
+        ? parsedSprintPlanning.definitionOfDone
+        : (props.meeting.decisions ?? ''),
   );
   const [actions, setActions] = useState(
-    props.meeting.type === 2 ? '' : props.meeting.type === 3 ? parsedRetrospective.actions : (props.meeting.actions ?? ''),
+    props.meeting.type === 2
+      ? ''
+      : props.meeting.type === 3
+        ? parsedRetrospective.actions
+        : props.meeting.type === 4
+          ? parsedSprintPlanning.sprintGoal
+          : (props.meeting.actions ?? ''),
   );
   const [demonstrated, setDemonstrated] = useState(parsedReview.demonstrated);
   const [completed, setCompleted] = useState(parsedReview.completed);
@@ -223,9 +258,9 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
     }
 
     return {
-      notes: `Agenda:\n${agenda}\n\nNotes:\n${notes}`,
-      decisions,
-      actions,
+      notes: `Sprint Value:\n${agenda}\n\nSprint Goal:\n${actions}${notes.trim() ? `\n\nNotes:\n${notes}` : ''}`,
+      decisions: `Definition of Done (Increment):\n${decisions}`,
+      actions: null,
     };
   }
 
@@ -255,8 +290,8 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
       return 'Fill in all Retrospective fields.';
     }
 
-    if (type === 4 && (!agenda.trim() || !notes.trim() || !decisions.trim() || !actions.trim())) {
-      return 'Fill in all Sprint Planning fields.';
+    if (type === 4 && (!agenda.trim() || !decisions.trim() || !actions.trim())) {
+      return 'Fill in sprint value, definition of done, and sprint goal.';
     }
 
     return null;
@@ -370,20 +405,26 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
         date: props.meeting.date.trim().length > 0,
         type: true,
         sprintId: Boolean(props.meeting.sprintId),
-        agenda: (props.meeting.type === 4 ? parsedSprintPlanningNotes.agenda : parsedGeneralNotes.agenda).trim().length > 0,
+        agenda: (props.meeting.type === 4 ? parsedSprintPlanning.sprintValue : parsedGeneralNotes.agenda).trim().length > 0,
         notes: (
           props.meeting.type === 0
             ? parsedGeneralNotes.notes
             : props.meeting.type === 4
-              ? parsedSprintPlanningNotes.notes
+              ? parsedSprintPlanning.notes
               : ''
         ).trim().length > 0,
-        decisions: props.meeting.type === 2 ? parsedReview.feedback.trim().length > 0 : (props.meeting.decisions ?? '').trim().length > 0,
+        decisions: props.meeting.type === 2
+          ? parsedReview.feedback.trim().length > 0
+          : props.meeting.type === 4
+            ? parsedSprintPlanning.definitionOfDone.trim().length > 0
+            : (props.meeting.decisions ?? '').trim().length > 0,
         actions: props.meeting.type === 2
           ? parsedReview.followUpItems.trim().length > 0
           : props.meeting.type === 3
             ? parsedRetrospective.actions.trim().length > 0
-            : (props.meeting.actions ?? '').trim().length > 0,
+            : props.meeting.type === 4
+              ? parsedSprintPlanning.sprintGoal.trim().length > 0
+              : (props.meeting.actions ?? '').trim().length > 0,
         demonstrated: parsedReview.demonstrated.trim().length > 0,
         completed: parsedReview.completed.trim().length > 0,
         feedback: parsedReview.feedback.trim().length > 0,
