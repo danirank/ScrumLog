@@ -6,6 +6,7 @@ import { MeetingExecutionContainer } from '../Containers/MeetingExecutionContain
 import { meetingService } from '../Services/meetingService';
 import type { Meeting } from '../Types/meeting';
 import { activeMeetingStorageKey, useMeetingWorkspaceData } from './hooks/useMeetingWorkspaceData';
+import styles from './MeetingInProgressPage.module.css';
 
 function getMeetingTypeLabel(type: Meeting['type']) {
   if (type === 0) return 'General';
@@ -70,50 +71,69 @@ export function MeetingInProgressPage() {
     <>
       <RecordPanel
         title="Meetings in progress"
-        description="Meetings that have started and can be edited or removed from the current flow."
+        description="Meetings that have started and can be opened, updated, or completed inside the current flow."
       >
         {inProgressMeetings.length === 0 ? (
           <p>No meetings are currently in progress.</p>
         ) : (
           <RecordList>
-            {inProgressMeetings.map((meeting) => (
-              <RecordListItem
-                key={meeting.id}
-                title={meeting.title}
-                subtitle={`${getMeetingTypeLabel(meeting.type)} • ${new Date(meeting.date).toLocaleString()}`}
-                actions={
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveMeeting(meeting);
-                        window.localStorage.setItem(activeMeetingStorageKey, meeting.id);
-                        setSearchParams({ meetingId: meeting.id }, { replace: true });
-                      }}
-                    >
-                      Edit
-                    </button>
-                    <button type="button" onClick={() => void handleDeleteMeeting(meeting.id)}>Delete</button>
-                  </>
-                }
-              >
-                <span>Status: In progress</span>
-                <span>Participants: {meeting.participantIds.length}</span>
-              </RecordListItem>
-            ))}
+            {inProgressMeetings.map((meeting) => {
+              const isExpanded = activeMeeting?.id === meeting.id;
+
+              return (
+                <RecordListItem
+                  key={meeting.id}
+                  title={meeting.title}
+                  subtitle={`${getMeetingTypeLabel(meeting.type)} • ${new Date(meeting.date).toLocaleString()}`}
+                  actions={
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (isExpanded) {
+                            setActiveMeeting(null);
+                            window.localStorage.removeItem(activeMeetingStorageKey);
+                            setSearchParams({}, { replace: true });
+                            return;
+                          }
+
+                          setActiveMeeting(meeting);
+                          window.localStorage.setItem(activeMeetingStorageKey, meeting.id);
+                          setSearchParams({ meetingId: meeting.id }, { replace: true });
+                        }}
+                      >
+                        {isExpanded ? 'Close' : 'Open'}
+                      </button>
+                      <button type="button" onClick={() => void handleDeleteMeeting(meeting.id)}>Delete</button>
+                    </>
+                  }
+                >
+                  <span className={styles.metaChip}>Status: In progress</span>
+                  <span className={styles.metaChip}>Participants: {meeting.participantIds.length}</span>
+
+                  {isExpanded ? (
+                    <div className={styles.expandedSection}>
+                      <div className={styles.detailsHeader}>
+                        <h3>Meeting workspace</h3>
+                        <p>Continue the active meeting without leaving the in-progress list.</p>
+                      </div>
+
+                      <MeetingExecutionContainer
+                        meeting={meeting}
+                        onSaved={handleMeetingSaved}
+                        onCompleted={handleMeetingCompleted}
+                        lockFilledFields
+                      />
+                    </div>
+                  ) : null}
+                </RecordListItem>
+              );
+            })}
           </RecordList>
         )}
       </RecordPanel>
 
       {statusMessage ? <p>{statusMessage}</p> : null}
-
-      {activeMeeting ? (
-        <MeetingExecutionContainer
-          meeting={activeMeeting}
-          onSaved={handleMeetingSaved}
-          onCompleted={handleMeetingCompleted}
-        />
-      ) : null}
     </>
   );
 }

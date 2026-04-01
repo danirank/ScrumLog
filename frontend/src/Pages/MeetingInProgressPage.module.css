@@ -1,0 +1,25 @@
+.metaChip {
+  padding: 0.45rem 0.7rem;
+  border-radius: 999px;
+  background: rgba(255, 247, 238, 0.82);
+  border: 1px solid var(--hairline);
+}
+
+.expandedSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--hairline);
+}
+
+.detailsHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detailsHeader p {
+  color: var(--muted-text);
+}

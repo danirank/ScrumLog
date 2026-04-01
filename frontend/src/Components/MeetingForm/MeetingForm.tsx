@@ -32,6 +32,26 @@ interface MeetingFormProps {
   wentLessWell: string;
   improvements: string;
   dailyEntries: Record<string, DailyParticipantEntryInput>;
+  lockedFields?: Partial<Record<
+    | 'title'
+    | 'date'
+    | 'type'
+    | 'sprintId'
+    | 'agenda'
+    | 'notes'
+    | 'decisions'
+    | 'actions'
+    | 'demonstrated'
+    | 'completed'
+    | 'feedback'
+    | 'followUpItems'
+    | 'wentWell'
+    | 'wentLessWell'
+    | 'improvements',
+    boolean
+  >>;
+  lockedParticipantIds?: string[];
+  lockedDailyEntries?: Record<string, Partial<Record<keyof DailyParticipantEntryInput, boolean>>>;
   isSubmitting: boolean;
   submitLabel: string;
   statusMessage?: string;
@@ -58,6 +78,10 @@ interface MeetingFormProps {
 }
 
 export function MeetingForm(props: MeetingFormProps) {
+  const lockedFields = props.lockedFields ?? {};
+  const lockedParticipantIds = props.lockedParticipantIds ?? [];
+  const lockedDailyEntries = props.lockedDailyEntries ?? {};
+
   const selectedParticipantsLabel =
     props.selectedParticipantIds.length === 0
       ? 'Select participants'
@@ -68,16 +92,16 @@ export function MeetingForm(props: MeetingFormProps) {
       <>
         <h3>General details</h3>
         <FormField label="Agenda">
-          <textarea value={props.agenda} onChange={(event) => props.onAgendaChange(event.target.value)} required />
+          <textarea value={props.agenda} onChange={(event) => props.onAgendaChange(event.target.value)} required readOnly={lockedFields.agenda} />
         </FormField>
         <FormField label="Notes">
-          <textarea value={props.notes} onChange={(event) => props.onNotesChange(event.target.value)} required />
+          <textarea value={props.notes} onChange={(event) => props.onNotesChange(event.target.value)} required readOnly={lockedFields.notes} />
         </FormField>
         <FormField label="Decisions">
-          <textarea value={props.decisions} onChange={(event) => props.onDecisionsChange(event.target.value)} required />
+          <textarea value={props.decisions} onChange={(event) => props.onDecisionsChange(event.target.value)} required readOnly={lockedFields.decisions} />
         </FormField>
         <FormField label="Actions">
-          <textarea value={props.actions} onChange={(event) => props.onActionsChange(event.target.value)} required />
+          <textarea value={props.actions} onChange={(event) => props.onActionsChange(event.target.value)} required readOnly={lockedFields.actions} />
         </FormField>
       </>
     );
@@ -102,6 +126,7 @@ export function MeetingForm(props: MeetingFormProps) {
                     value={entry.yesterday}
                     onChange={(event) => props.onDailyEntryChange(participantId, 'yesterday', event.target.value)}
                     required
+                    readOnly={lockedDailyEntries[participantId]?.yesterday}
                   />
                 </FormField>
                 <FormField label="What will you do today?">
@@ -109,12 +134,14 @@ export function MeetingForm(props: MeetingFormProps) {
                     value={entry.today}
                     onChange={(event) => props.onDailyEntryChange(participantId, 'today', event.target.value)}
                     required
+                    readOnly={lockedDailyEntries[participantId]?.today}
                   />
                 </FormField>
                 <FormField label="Any blockers?">
                   <textarea
                     value={entry.blockers}
                     onChange={(event) => props.onDailyEntryChange(participantId, 'blockers', event.target.value)}
+                    readOnly={lockedDailyEntries[participantId]?.blockers}
                   />
                 </FormField>
               </section>
@@ -130,16 +157,16 @@ export function MeetingForm(props: MeetingFormProps) {
       <>
         <h3>Review details</h3>
         <FormField label="What was demonstrated">
-          <textarea value={props.demonstrated} onChange={(event) => props.onDemonstratedChange(event.target.value)} required />
+          <textarea value={props.demonstrated} onChange={(event) => props.onDemonstratedChange(event.target.value)} required readOnly={lockedFields.demonstrated} />
         </FormField>
         <FormField label="What was completed">
-          <textarea value={props.completed} onChange={(event) => props.onCompletedChange(event.target.value)} required />
+          <textarea value={props.completed} onChange={(event) => props.onCompletedChange(event.target.value)} required readOnly={lockedFields.completed} />
         </FormField>
         <FormField label="Feedback">
-          <textarea value={props.feedback} onChange={(event) => props.onFeedbackChange(event.target.value)} required />
+          <textarea value={props.feedback} onChange={(event) => props.onFeedbackChange(event.target.value)} required readOnly={lockedFields.feedback} />
         </FormField>
         <FormField label="Follow-up items">
-          <textarea value={props.followUpItems} onChange={(event) => props.onFollowUpItemsChange(event.target.value)} required />
+          <textarea value={props.followUpItems} onChange={(event) => props.onFollowUpItemsChange(event.target.value)} required readOnly={lockedFields.followUpItems} />
         </FormField>
       </>
     );
@@ -150,16 +177,16 @@ export function MeetingForm(props: MeetingFormProps) {
       <>
         <h3>Retrospective details</h3>
         <FormField label="What went well">
-          <textarea value={props.wentWell} onChange={(event) => props.onWentWellChange(event.target.value)} required />
+          <textarea value={props.wentWell} onChange={(event) => props.onWentWellChange(event.target.value)} required readOnly={lockedFields.wentWell} />
         </FormField>
         <FormField label="What went less well">
-          <textarea value={props.wentLessWell} onChange={(event) => props.onWentLessWellChange(event.target.value)} required />
+          <textarea value={props.wentLessWell} onChange={(event) => props.onWentLessWellChange(event.target.value)} required readOnly={lockedFields.wentLessWell} />
         </FormField>
         <FormField label="Improvements for next sprint">
-          <textarea value={props.improvements} onChange={(event) => props.onImprovementsChange(event.target.value)} required />
+          <textarea value={props.improvements} onChange={(event) => props.onImprovementsChange(event.target.value)} required readOnly={lockedFields.improvements} />
         </FormField>
         <FormField label="Actions">
-          <textarea value={props.actions} onChange={(event) => props.onActionsChange(event.target.value)} required />
+          <textarea value={props.actions} onChange={(event) => props.onActionsChange(event.target.value)} required readOnly={lockedFields.actions} />
         </FormField>
       </>
     );
@@ -170,16 +197,16 @@ export function MeetingForm(props: MeetingFormProps) {
       <>
         <h3>Sprint planning details</h3>
         <FormField label="Agenda">
-          <textarea value={props.agenda} onChange={(event) => props.onAgendaChange(event.target.value)} required />
+          <textarea value={props.agenda} onChange={(event) => props.onAgendaChange(event.target.value)} required readOnly={lockedFields.agenda} />
         </FormField>
         <FormField label="Notes">
-          <textarea value={props.notes} onChange={(event) => props.onNotesChange(event.target.value)} required />
+          <textarea value={props.notes} onChange={(event) => props.onNotesChange(event.target.value)} required readOnly={lockedFields.notes} />
         </FormField>
         <FormField label="Decisions">
-          <textarea value={props.decisions} onChange={(event) => props.onDecisionsChange(event.target.value)} required />
+          <textarea value={props.decisions} onChange={(event) => props.onDecisionsChange(event.target.value)} required readOnly={lockedFields.decisions} />
         </FormField>
         <FormField label="Actions">
-          <textarea value={props.actions} onChange={(event) => props.onActionsChange(event.target.value)} required />
+          <textarea value={props.actions} onChange={(event) => props.onActionsChange(event.target.value)} required readOnly={lockedFields.actions} />
         </FormField>
       </>
     );
@@ -214,13 +241,13 @@ export function MeetingForm(props: MeetingFormProps) {
       <form onSubmit={(event) => { event.preventDefault(); props.onSubmit(); }}>
         <h3>Base fields</h3>
         <FormField label="Title">
-          <input value={props.title} onChange={(event) => props.onTitleChange(event.target.value)} required />
+          <input value={props.title} onChange={(event) => props.onTitleChange(event.target.value)} required readOnly={lockedFields.title} />
         </FormField>
         <FormField label="Date">
-          <input type="datetime-local" value={props.date} onChange={(event) => props.onDateChange(event.target.value)} required />
+          <input type="datetime-local" value={props.date} onChange={(event) => props.onDateChange(event.target.value)} required readOnly={lockedFields.date} />
         </FormField>
         <FormField label="Sprint">
-          <select value={props.sprintId} onChange={(event) => props.onSprintIdChange(event.target.value)} required>
+          <select value={props.sprintId} onChange={(event) => props.onSprintIdChange(event.target.value)} required disabled={lockedFields.sprintId}>
             <option value="">Select a sprint</option>
             {props.sprintOptions.map((sprint) => (
               <option key={sprint.value} value={sprint.value}>
@@ -240,6 +267,7 @@ export function MeetingForm(props: MeetingFormProps) {
                     type="checkbox"
                     checked={props.selectedParticipantIds.includes(participant.value)}
                     onChange={() => props.onParticipantToggle(participant.value)}
+                    disabled={lockedParticipantIds.includes(participant.value)}
                   />
                 </label>
               ))}
@@ -252,6 +280,7 @@ export function MeetingForm(props: MeetingFormProps) {
             onChange={(event) =>
               props.onTypeChange(event.target.value === '' ? '' : (Number(event.target.value) as MeetingTypeValue))
             }
+            disabled={lockedFields.type}
           >
             <option value="">Select a meeting type</option>
             <option value={0}>General</option>
@@ -264,13 +293,30 @@ export function MeetingForm(props: MeetingFormProps) {
 
         {renderTypeSpecificFields()}
 
-        <FormActions
-          isSubmitting={props.isSubmitting}
-          submitLabel={props.submitLabel}
-          statusMessage={props.statusMessage}
-          isError={props.isError}
-        />
-        {props.onMarkCompleted ? <button type="button" onClick={props.onMarkCompleted}>Mark as completed</button> : null}
+        <div className={styles.actionArea}>
+          <FormActions
+            isSubmitting={props.isSubmitting}
+            submitLabel={props.submitLabel}
+            statusMessage={props.statusMessage}
+            isError={props.isError}
+          />
+          {props.onMarkCompleted ? (
+            <div className={styles.completionAction}>
+              <div className={styles.completionCopy}>
+                <strong>Finish this meeting</strong>
+                <p>Use this when the meeting is done and should move to Completed.</p>
+              </div>
+              <button
+                className={styles.completeButton}
+                type="button"
+                onClick={props.onMarkCompleted}
+                disabled={props.isSubmitting}
+              >
+                Mark as completed
+              </button>
+            </div>
+          ) : null}
+        </div>
       </form>
     </FormCard>
   );

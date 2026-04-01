@@ -39,9 +39,6 @@ export function UpcomingMeetingsList(props: UpcomingMeetingsListProps) {
                 <button type="button" onClick={() => props.onStartMeeting(meeting)}>Start Meeting</button>
                 <button type="button" onClick={() => props.onEditMeeting(meeting)}>Edit</button>
                 <button type="button" onClick={() => props.onDeleteMeeting(meeting.id)}>Delete</button>
-                {meeting.type === 0 ? (
-                  <button type="button" onClick={() => props.onCreateAgenda(meeting)}>Create Agenda</button>
-                ) : null}
               </div>
             </li>
           ))}

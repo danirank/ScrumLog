@@ -16,7 +16,16 @@ public class MeetingParticipantService(
             return "Meeting not found.";
         }
 
-        return await personRepository.ExistsAsync(createDto.PersonId) ? null : "Person not found.";
+        if (!await personRepository.ExistsAsync(createDto.PersonId))
+        {
+            return "Person not found.";
+        }
+
+        var existingParticipants = await Repository.GetAllAsync();
+        var duplicateExists = existingParticipants.Any(participant =>
+            participant.MeetingId == createDto.MeetingId && participant.PersonId == createDto.PersonId);
+
+        return duplicateExists ? "Participant is already linked to this meeting." : null;
     }
 
     protected override async Task<string?> ValidateUpdateAsync(Guid id, UpdateMeetingParticipantDto updateDto)
@@ -26,7 +35,18 @@ public class MeetingParticipantService(
             return "Meeting not found.";
         }
 
-        return await personRepository.ExistsAsync(updateDto.PersonId) ? null : "Person not found.";
+        if (!await personRepository.ExistsAsync(updateDto.PersonId))
+        {
+            return "Person not found.";
+        }
+
+        var existingParticipants = await Repository.GetAllAsync();
+        var duplicateExists = existingParticipants.Any(participant =>
+            participant.Id != id &&
+            participant.MeetingId == updateDto.MeetingId &&
+            participant.PersonId == updateDto.PersonId);
+
+        return duplicateExists ? "Participant is already linked to this meeting." : null;
     }
 
     protected override MeetingParticipantDto MapToDto(MeetingParticipant entity)

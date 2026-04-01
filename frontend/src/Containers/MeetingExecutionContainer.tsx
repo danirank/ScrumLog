@@ -15,6 +15,7 @@ interface MeetingExecutionContainerProps {
   meeting: Meeting;
   onSaved: (meeting: Meeting) => void;
   onCompleted: (meeting: Meeting) => void;
+  lockFilledFields?: boolean;
 }
 
 function parseGeneralMeetingNotes(notes: string | null) {
@@ -39,8 +40,51 @@ function parseGeneralMeetingNotes(notes: string | null) {
   };
 }
 
+function parseReviewMeetingContent(notes: string | null, decisions: string | null, actions: string | null) {
+  const demonstrated = notes?.startsWith('Demonstrated:\n')
+    ? notes.split('\n\nCompleted:\n')[0]?.replace('Demonstrated:\n', '') ?? ''
+    : '';
+  const completed = notes?.includes('\n\nCompleted:\n')
+    ? notes.split('\n\nCompleted:\n')[1] ?? ''
+    : '';
+
+  return {
+    demonstrated,
+    completed,
+    feedback: decisions?.replace('Feedback:\n', '') ?? '',
+    followUpItems: actions?.replace('Follow-up items:\n', '') ?? '',
+  };
+}
+
+function parseRetrospectiveMeetingContent(notes: string | null, decisions: string | null, actions: string | null) {
+  const wentWell = notes?.startsWith('Went well:\n')
+    ? notes.split('\n\nWent less well:\n')[0]?.replace('Went well:\n', '') ?? ''
+    : '';
+  const wentLessWell = notes?.includes('\n\nWent less well:\n')
+    ? notes.split('\n\nWent less well:\n')[1] ?? ''
+    : '';
+
+  return {
+    wentWell,
+    wentLessWell,
+    improvements: decisions?.replace('Improvements for next sprint:\n', '') ?? '',
+    actions: actions ?? '',
+  };
+}
+
 export function MeetingExecutionContainer(props: MeetingExecutionContainerProps) {
   const parsedGeneralNotes = parseGeneralMeetingNotes(props.meeting.type === 0 ? props.meeting.notes : null);
+  const parsedSprintPlanningNotes = parseGeneralMeetingNotes(props.meeting.type === 4 ? props.meeting.notes : null);
+  const parsedReview = parseReviewMeetingContent(
+    props.meeting.type === 2 ? props.meeting.notes : null,
+    props.meeting.type === 2 ? props.meeting.decisions : null,
+    props.meeting.type === 2 ? props.meeting.actions : null,
+  );
+  const parsedRetrospective = parseRetrospectiveMeetingContent(
+    props.meeting.type === 3 ? props.meeting.notes : null,
+    props.meeting.type === 3 ? props.meeting.decisions : null,
+    props.meeting.type === 3 ? props.meeting.actions : null,
+  );
   const [title, setTitle] = useState(props.meeting.title);
   const [date, setDate] = useState(props.meeting.date.slice(0, 16));
   const [type, setType] = useState<MeetingTypeValue>(props.meeting.type);
@@ -48,17 +92,33 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
   const [sprintOptions, setSprintOptions] = useState<SelectOption[]>([]);
   const [participantOptions, setParticipantOptions] = useState<SelectOption[]>([]);
   const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([]);
-  const [agenda, setAgenda] = useState(parsedGeneralNotes.agenda);
-  const [notes, setNotes] = useState(props.meeting.type === 0 ? parsedGeneralNotes.notes : (props.meeting.notes ?? ''));
-  const [decisions, setDecisions] = useState(props.meeting.decisions ?? '');
-  const [actions, setActions] = useState(props.meeting.actions ?? '');
-  const [demonstrated, setDemonstrated] = useState('');
-  const [completed, setCompleted] = useState('');
-  const [feedback, setFeedback] = useState('');
-  const [followUpItems, setFollowUpItems] = useState('');
-  const [wentWell, setWentWell] = useState('');
-  const [wentLessWell, setWentLessWell] = useState('');
-  const [improvements, setImprovements] = useState('');
+  const [agenda, setAgenda] = useState(
+    props.meeting.type === 4 ? parsedSprintPlanningNotes.agenda : parsedGeneralNotes.agenda,
+  );
+  const [notes, setNotes] = useState(
+    props.meeting.type === 0
+      ? parsedGeneralNotes.notes
+      : props.meeting.type === 4
+        ? parsedSprintPlanningNotes.notes
+        : props.meeting.type === 2
+          ? ''
+          : props.meeting.type === 3
+            ? ''
+            : (props.meeting.notes ?? ''),
+  );
+  const [decisions, setDecisions] = useState(
+    props.meeting.type === 2 ? '' : (props.meeting.decisions ?? ''),
+  );
+  const [actions, setActions] = useState(
+    props.meeting.type === 2 ? '' : props.meeting.type === 3 ? parsedRetrospective.actions : (props.meeting.actions ?? ''),
+  );
+  const [demonstrated, setDemonstrated] = useState(parsedReview.demonstrated);
+  const [completed, setCompleted] = useState(parsedReview.completed);
+  const [feedback, setFeedback] = useState(parsedReview.feedback);
+  const [followUpItems, setFollowUpItems] = useState(parsedReview.followUpItems);
+  const [wentWell, setWentWell] = useState(parsedRetrospective.wentWell);
+  const [wentLessWell, setWentLessWell] = useState(parsedRetrospective.wentLessWell);
+  const [improvements, setImprovements] = useState(parsedRetrospective.improvements);
   const [dailyEntries, setDailyEntries] = useState<Record<string, DailyParticipantEntryInput>>({});
   const [existingMeetingParticipants, setExistingMeetingParticipants] = useState<MeetingParticipant[]>([]);
   const [existingDailyEntries, setExistingDailyEntries] = useState<DailyMeetingEntry[]>([]);
@@ -211,6 +271,11 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
 
     await Promise.all(additions.map((personId) => meetingParticipantService.create({ meetingId: props.meeting.id, personId })));
     await Promise.all(removals.map((participant) => meetingParticipantService.delete(participant.id)));
+
+    const refreshedParticipants = (await meetingParticipantService.getAll()).filter(
+      (participant) => participant.meetingId === props.meeting.id,
+    );
+    setExistingMeetingParticipants(refreshedParticipants);
   }
 
   async function syncDailyEntries() {
@@ -248,6 +313,11 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
 
     const removals = existingDailyEntries.filter((entry) => !selectedPeople.has(entry.personId));
     await Promise.all(removals.map((entry) => dailyMeetingEntryService.delete(entry.id)));
+
+    const refreshedDailyEntries = (await dailyMeetingEntryService.getAll()).filter(
+      (entry) => entry.meetingId === props.meeting.id,
+    );
+    setExistingDailyEntries(refreshedDailyEntries);
   }
 
   async function saveMeeting(status: MeetingStatus) {
@@ -293,6 +363,47 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
     }
   }
 
+  const lockedFields = props.lockFilledFields
+    ? {
+        title: props.meeting.title.trim().length > 0,
+        date: props.meeting.date.trim().length > 0,
+        type: true,
+        sprintId: Boolean(props.meeting.sprintId),
+        agenda: (props.meeting.type === 4 ? parsedSprintPlanningNotes.agenda : parsedGeneralNotes.agenda).trim().length > 0,
+        notes: (
+          props.meeting.type === 0
+            ? parsedGeneralNotes.notes
+            : props.meeting.type === 4
+              ? parsedSprintPlanningNotes.notes
+              : ''
+        ).trim().length > 0,
+        decisions: props.meeting.type === 2 ? parsedReview.feedback.trim().length > 0 : (props.meeting.decisions ?? '').trim().length > 0,
+        actions: props.meeting.type === 2
+          ? parsedReview.followUpItems.trim().length > 0
+          : props.meeting.type === 3
+            ? parsedRetrospective.actions.trim().length > 0
+            : (props.meeting.actions ?? '').trim().length > 0,
+        demonstrated: parsedReview.demonstrated.trim().length > 0,
+        completed: parsedReview.completed.trim().length > 0,
+        feedback: parsedReview.feedback.trim().length > 0,
+        followUpItems: parsedReview.followUpItems.trim().length > 0,
+        wentWell: parsedRetrospective.wentWell.trim().length > 0,
+        wentLessWell: parsedRetrospective.wentLessWell.trim().length > 0,
+        improvements: parsedRetrospective.improvements.trim().length > 0,
+      }
+    : undefined;
+
+  const lockedDailyEntries = props.lockFilledFields
+    ? existingDailyEntries.reduce<Record<string, Partial<Record<keyof DailyParticipantEntryInput, boolean>>>>((accumulator, entry) => {
+        accumulator[entry.personId] = {
+          yesterday: entry.yesterday.trim().length > 0,
+          today: entry.today.trim().length > 0,
+          blockers: Boolean(entry.blockers?.trim()),
+        };
+        return accumulator;
+      }, {})
+    : undefined;
+
   return (
     <MeetingForm
       title={title}
@@ -314,6 +425,9 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
       wentLessWell={wentLessWell}
       improvements={improvements}
       dailyEntries={dailyEntries}
+      lockedFields={lockedFields}
+      lockedParticipantIds={props.lockFilledFields ? existingMeetingParticipants.map((participant) => participant.personId) : undefined}
+      lockedDailyEntries={lockedDailyEntries}
       isSubmitting={isSubmitting}
       submitLabel="Save meeting"
       statusMessage={statusMessage}

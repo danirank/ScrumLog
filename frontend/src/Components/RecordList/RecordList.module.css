@@ -48,7 +48,7 @@
   color: var(--muted-text);
 }
 
-.meta span {
+.meta > span {
   padding: 0.45rem 0.7rem;
   border-radius: 999px;
   background: rgba(255, 247, 238, 0.82);
