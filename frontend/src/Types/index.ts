@@ -6,3 +6,4 @@ export * from './meeting';
 export * from './meetingParticipant';
 export * from './dailyMeetingEntry';
 export * from './selectOption';
+export * from './meetingMarkdownExport';

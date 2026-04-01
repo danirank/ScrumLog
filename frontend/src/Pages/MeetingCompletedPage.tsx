@@ -2,11 +2,17 @@ import { useEffect, useState } from 'react';
 import { RecordList, RecordListItem } from '../Components/RecordList/RecordList';
 import { RecordPanel } from '../Components/RecordPanel/RecordPanel';
 import { dailyMeetingEntryService } from '../Services/dailyMeetingEntryService';
+import { mapMeetingToMarkdownExportRequest } from '../Services/meetingMarkdownExportMapper';
+import { meetingMarkdownExportService } from '../Services/meetingMarkdownExportService';
 import { meetingService } from '../Services/meetingService';
 import { personService } from '../Services/personService';
+import { sprintService } from '../Services/sprintService';
+import { teamService } from '../Services/teamService';
 import type { DailyMeetingEntry } from '../Types/dailyMeetingEntry';
 import type { Meeting, MeetingType } from '../Types/meeting';
 import type { Person } from '../Types/person';
+import type { Sprint } from '../Types/sprint';
+import type { Team } from '../Types/team';
 import { useMeetingWorkspaceData } from './hooks/useMeetingWorkspaceData';
 import styles from './MeetingCompletedPage.module.css';
 
@@ -37,20 +43,31 @@ export function MeetingCompletedPage() {
   const [expandedMeetingId, setExpandedMeetingId] = useState<string | null>(null);
   const [persons, setPersons] = useState<Person[]>([]);
   const [dailyEntries, setDailyEntries] = useState<DailyMeetingEntry[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [sprints, setSprints] = useState<Sprint[]>([]);
+  const [statusMessage, setStatusMessage] = useState<string>();
+  const [isError, setIsError] = useState(false);
+  const [isExportingMeetingId, setIsExportingMeetingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadRelatedData() {
       try {
-        const [loadedPersons, loadedDailyEntries] = await Promise.all([
+        const [loadedPersons, loadedDailyEntries, loadedTeams, loadedSprints] = await Promise.all([
           personService.getAll(),
           dailyMeetingEntryService.getAll(),
+          teamService.getAll(),
+          sprintService.getAll(),
         ]);
 
         setPersons(loadedPersons);
         setDailyEntries(loadedDailyEntries);
+        setTeams(loadedTeams);
+        setSprints(loadedSprints);
       } catch {
         setPersons([]);
         setDailyEntries([]);
+        setTeams([]);
+        setSprints([]);
       }
     }
 
@@ -91,146 +108,198 @@ export function MeetingCompletedPage() {
     await refresh();
   }
 
+  async function handleExportMarkdown(meeting: Meeting) {
+    setIsExportingMeetingId(meeting.id);
+
+    try {
+      const payload = mapMeetingToMarkdownExportRequest(
+        {
+          meetingId: meeting.id,
+          title: meeting.title,
+          meetingType: meeting.type,
+          date: meeting.date,
+          sprintId: meeting.sprintId,
+          participants: meeting.participantIds,
+          notes: meeting.notes,
+          decisions: meeting.decisions,
+          actions: meeting.actions,
+        },
+        teams,
+        sprints,
+        persons,
+        dailyEntries,
+      );
+
+      const result = await meetingMarkdownExportService.export(payload);
+      setStatusMessage(`Saved markdown file ${result.fileName}.`);
+      setIsError(false);
+    } catch (error) {
+      setStatusMessage(error instanceof Error ? error.message : 'Failed to export markdown file.');
+      setIsError(true);
+    } finally {
+      setIsExportingMeetingId(null);
+    }
+  }
+
   return (
-    <RecordPanel
-      title="Completed meetings"
-      description="Review finished meetings and narrow the list by sprint and meeting type."
-      actions={
-        <div className={styles.filters}>
-          <label className={styles.filter}>
-            <span>Sprint</span>
-            <select value={selectedSprintId} onChange={(event) => setSelectedSprintId(event.target.value)}>
-              <option value="">All sprints</option>
-              {sprintOptions.map((sprint) => (
-                <option key={sprint.value} value={sprint.value}>
-                  {sprint.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className={styles.filter}>
-            <span>Type</span>
-            <select
-              value={selectedType}
-              onChange={(event) => setSelectedType(event.target.value === '' ? '' : Number(event.target.value) as MeetingType)}
-            >
-              <option value="">All types</option>
-              <option value={0}>General</option>
-              <option value={1}>Daily</option>
-              <option value={2}>Review</option>
-              <option value={3}>Retrospective</option>
-              <option value={4}>Sprint planning</option>
-            </select>
-          </label>
-        </div>
-      }
-    >
-      {filteredMeetings.length === 0 ? (
-        <p>No completed meetings match the selected filters.</p>
-      ) : (
-        <RecordList>
-          {filteredMeetings.map((meeting) => {
-            const isExpanded = expandedMeetingId === meeting.id;
-            const sprintLabel = sprintOptions.find((option) => option.value === meeting.sprintId)?.label ?? 'No sprint';
-            const meetingParticipantDetails = meeting.participantIds.map((participantId) => {
-              const person = persons.find((item) => item.id === participantId);
-              return {
-                id: participantId,
-                label: person ? `${person.name} (${person.role})` : 'Unknown participant',
-              };
-            });
-            const meetingDailyEntries = dailyEntries.filter((entry) => entry.meetingId === meeting.id);
-
-            return (
-              <RecordListItem
-                key={meeting.id}
-                title={meeting.title}
-                subtitle={`${getMeetingTypeLabel(meeting.type)} • ${new Date(meeting.date).toLocaleString()}`}
-                actions={
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => setExpandedMeetingId((current) => current === meeting.id ? null : meeting.id)}
-                    >
-                      {isExpanded ? 'Hide details' : 'View details'}
-                    </button>
-                    <button type="button" onClick={() => void handleDeleteMeeting(meeting.id)}>Delete</button>
-                  </>
-                }
+    <>
+      <RecordPanel
+        title="Completed meetings"
+        description="Review finished meetings and narrow the list by sprint and meeting type."
+        actions={
+          <div className={styles.filters}>
+            <label className={styles.filter}>
+              <span>Sprint</span>
+              <select value={selectedSprintId} onChange={(event) => setSelectedSprintId(event.target.value)}>
+                <option value="">All sprints</option>
+                {sprintOptions.map((sprint) => (
+                  <option key={sprint.value} value={sprint.value}>
+                    {sprint.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={styles.filter}>
+              <span>Type</span>
+              <select
+                value={selectedType}
+                onChange={(event) => setSelectedType(event.target.value === '' ? '' : Number(event.target.value) as MeetingType)}
               >
-                <span className={styles.metaChip}>Sprint: {sprintLabel}</span>
-                <span className={styles.metaChip}>Participants: {meeting.participantIds.length}</span>
+                <option value="">All types</option>
+                <option value={0}>General</option>
+                <option value={1}>Daily</option>
+                <option value={2}>Review</option>
+                <option value={3}>Retrospective</option>
+                <option value={4}>Sprint planning</option>
+              </select>
+            </label>
+          </div>
+        }
+      >
+        {filteredMeetings.length === 0 ? (
+          <p>No completed meetings match the selected filters.</p>
+        ) : (
+          <RecordList>
+            {filteredMeetings.map((meeting) => {
+              const isExpanded = expandedMeetingId === meeting.id;
+              const sprintLabel = sprintOptions.find((option) => option.value === meeting.sprintId)?.label ?? 'No sprint';
+              const meetingParticipantDetails = meeting.participantIds.map((participantId) => {
+                const person = persons.find((item) => item.id === participantId);
+                return {
+                  id: participantId,
+                  label: person ? `${person.name} (${person.role})` : 'Unknown participant',
+                };
+              });
+              const meetingDailyEntries = dailyEntries.filter((entry) => entry.meetingId === meeting.id);
 
-                {isExpanded ? (
-                  <div className={styles.expandedSection}>
-                    <div className={styles.detailsHeader}>
-                      <h3>Meeting details</h3>
-                      <p>Review the captured outcome, participants, and follow-up information.</p>
+              return (
+                <RecordListItem
+                  key={meeting.id}
+                  title={meeting.title}
+                  subtitle={`${getMeetingTypeLabel(meeting.type)} • ${new Date(meeting.date).toLocaleString()}`}
+                  actions={
+                    <>
+                      <button
+                        type="button"
+                        disabled={isExportingMeetingId === meeting.id}
+                        onClick={() => void handleExportMarkdown(meeting)}
+                      >
+                        {isExportingMeetingId === meeting.id ? 'Saving file...' : 'Save file'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setExpandedMeetingId((current) => current === meeting.id ? null : meeting.id)}
+                      >
+                        {isExpanded ? 'Hide details' : 'View details'}
+                      </button>
+                      <button type="button" onClick={() => void handleDeleteMeeting(meeting.id)}>Delete</button>
+                    </>
+                  }
+                >
+                  <span className={styles.metaChip}>Sprint: {sprintLabel}</span>
+                  <span className={styles.metaChip}>Participants: {meeting.participantIds.length}</span>
+
+                  {isExpanded ? (
+                    <div className={styles.expandedSection}>
+                      <div className={styles.detailsHeader}>
+                        <h3>Meeting details</h3>
+                        <p>Review the captured outcome, participants, and follow-up information.</p>
+                        <button
+                          className={styles.exportButton}
+                          type="button"
+                          disabled={isExportingMeetingId === meeting.id}
+                          onClick={() => void handleExportMarkdown(meeting)}
+                        >
+                          {isExportingMeetingId === meeting.id ? 'Exporting...' : 'Export markdown'}
+                        </button>
+                      </div>
+
+                      <div className={styles.detailsGrid}>
+                        <article className={styles.detailCard}>
+                          <h3>Summary</h3>
+                          <span>Sprint: {sprintLabel}</span>
+                          <span>Type: {getMeetingTypeLabel(meeting.type)}</span>
+                          <span>Participants: {meeting.participantIds.length}</span>
+                        </article>
+
+                        <article className={styles.detailCard}>
+                          <h3>Participants</h3>
+                          {meetingParticipantDetails.length === 0 ? (
+                            <span>No participants recorded.</span>
+                          ) : (
+                            meetingParticipantDetails.map((participant) => (
+                              <span key={participant.id}>{participant.label}</span>
+                            ))
+                          )}
+                        </article>
+
+                        <article className={styles.detailCard}>
+                          <h3>Notes</h3>
+                          {renderMultilineValue(meeting.notes)}
+                        </article>
+
+                        <article className={styles.detailCard}>
+                          <h3>Decisions</h3>
+                          {renderMultilineValue(meeting.decisions)}
+                        </article>
+
+                        <article className={styles.detailCard}>
+                          <h3>Actions</h3>
+                          {renderMultilineValue(meeting.actions)}
+                        </article>
+
+                        {meeting.type === 1 ? (
+                          <article className={styles.detailCard}>
+                            <h3>Daily entries</h3>
+                            {meetingDailyEntries.length === 0 ? (
+                              <span>No daily entries recorded.</span>
+                            ) : (
+                              meetingDailyEntries.map((entry) => {
+                                const person = persons.find((item) => item.id === entry.personId);
+
+                                return (
+                                  <div key={entry.id} className={styles.dailyEntry}>
+                                    <strong>{person ? `${person.name} (${person.role})` : 'Participant'}</strong>
+                                    <span>Yesterday: {entry.yesterday}</span>
+                                    <span>Today: {entry.today}</span>
+                                    <span>Blockers: {entry.blockers || 'None'}</span>
+                                  </div>
+                                );
+                              })
+                            )}
+                          </article>
+                        ) : null}
+                      </div>
                     </div>
+                  ) : null}
+                </RecordListItem>
+              );
+            })}
+          </RecordList>
+        )}
+      </RecordPanel>
 
-                    <div className={styles.detailsGrid}>
-                    <article className={styles.detailCard}>
-                      <h3>Summary</h3>
-                      <span>Sprint: {sprintLabel}</span>
-                      <span>Type: {getMeetingTypeLabel(meeting.type)}</span>
-                      <span>Participants: {meeting.participantIds.length}</span>
-                    </article>
-
-                    <article className={styles.detailCard}>
-                      <h3>Participants</h3>
-                      {meetingParticipantDetails.length === 0 ? (
-                        <span>No participants recorded.</span>
-                      ) : (
-                        meetingParticipantDetails.map((participant) => (
-                          <span key={participant.id}>{participant.label}</span>
-                        ))
-                      )}
-                    </article>
-
-                    <article className={styles.detailCard}>
-                      <h3>Notes</h3>
-                      {renderMultilineValue(meeting.notes)}
-                    </article>
-
-                    <article className={styles.detailCard}>
-                      <h3>Decisions</h3>
-                      {renderMultilineValue(meeting.decisions)}
-                    </article>
-
-                    <article className={styles.detailCard}>
-                      <h3>Actions</h3>
-                      {renderMultilineValue(meeting.actions)}
-                    </article>
-
-                    {meeting.type === 1 ? (
-                      <article className={styles.detailCard}>
-                        <h3>Daily entries</h3>
-                        {meetingDailyEntries.length === 0 ? (
-                          <span>No daily entries recorded.</span>
-                        ) : (
-                          meetingDailyEntries.map((entry) => {
-                            const person = persons.find((item) => item.id === entry.personId);
-
-                            return (
-                              <div key={entry.id} className={styles.dailyEntry}>
-                                <strong>{person ? `${person.name} (${person.role})` : 'Participant'}</strong>
-                                <span>Yesterday: {entry.yesterday}</span>
-                                <span>Today: {entry.today}</span>
-                                <span>Blockers: {entry.blockers || 'None'}</span>
-                              </div>
-                            );
-                          })
-                        )}
-                      </article>
-                    ) : null}
-                    </div>
-                  </div>
-                ) : null}
-              </RecordListItem>
-            );
-          })}
-        </RecordList>
-      )}
-    </RecordPanel>
+      {statusMessage ? <p className={isError ? styles.errorMessage : styles.successMessage}>{statusMessage}</p> : null}
+    </>
   );
 }

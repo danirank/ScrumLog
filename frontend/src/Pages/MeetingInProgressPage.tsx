@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { RecordList, RecordListItem } from '../Components/RecordList/RecordList';
 import { RecordPanel } from '../Components/RecordPanel/RecordPanel';
@@ -21,26 +21,45 @@ export function MeetingInProgressPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeMeeting, setActiveMeeting] = useState<Meeting | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>();
+  const [isError, setIsError] = useState(false);
   const inProgressMeetings = meetings.filter((meeting) => meeting.status === 1);
+  const hasRestoredActiveMeeting = useRef(false);
 
   useEffect(() => {
-    const requestedMeetingId = searchParams.get('meetingId') ?? window.localStorage.getItem(activeMeetingStorageKey);
-    if (!requestedMeetingId) {
+    if (!hasRestoredActiveMeeting.current) {
+      hasRestoredActiveMeeting.current = true;
+
+      const requestedMeetingId =
+        searchParams.get('meetingId') ?? window.localStorage.getItem(activeMeetingStorageKey);
+
+      if (!requestedMeetingId) {
+        return;
+      }
+
+      const matchingMeeting = inProgressMeetings.find((meeting) => meeting.id === requestedMeetingId);
+      if (matchingMeeting) {
+        setActiveMeeting(matchingMeeting);
+        window.localStorage.setItem(activeMeetingStorageKey, matchingMeeting.id);
+        return;
+      }
+
+      window.localStorage.removeItem(activeMeetingStorageKey);
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
+    if (activeMeeting) {
+      const refreshedMeeting = inProgressMeetings.find((meeting) => meeting.id === activeMeeting.id);
+      if (refreshedMeeting) {
+        setActiveMeeting(refreshedMeeting);
+        return;
+      }
+
       setActiveMeeting(null);
-      return;
+      window.localStorage.removeItem(activeMeetingStorageKey);
+      setSearchParams({}, { replace: true });
     }
-
-    const matchingMeeting = inProgressMeetings.find((meeting) => meeting.id === requestedMeetingId);
-    if (matchingMeeting) {
-      setActiveMeeting(matchingMeeting);
-      window.localStorage.setItem(activeMeetingStorageKey, matchingMeeting.id);
-      return;
-    }
-
-    setActiveMeeting(null);
-    window.localStorage.removeItem(activeMeetingStorageKey);
-    setSearchParams({}, { replace: true });
-  }, [inProgressMeetings, searchParams, setSearchParams]);
+  }, [activeMeeting, inProgressMeetings, searchParams, setSearchParams]);
 
   async function handleDeleteMeeting(meetingId: string) {
     await meetingService.delete(meetingId);
@@ -64,6 +83,7 @@ export function MeetingInProgressPage() {
     window.localStorage.removeItem(activeMeetingStorageKey);
     setSearchParams({}, { replace: true });
     setStatusMessage(`Completed meeting ${updatedMeeting.title}.`);
+    setIsError(false);
     void refresh();
   }
 
@@ -113,10 +133,10 @@ export function MeetingInProgressPage() {
 
                   {isExpanded ? (
                     <div className={styles.expandedSection}>
-                      <div className={styles.detailsHeader}>
-                        <h3>Meeting workspace</h3>
-                        <p>Continue the active meeting without leaving the in-progress list.</p>
-                      </div>
+                    <div className={styles.detailsHeader}>
+                      <h3>Meeting workspace</h3>
+                      <p>Continue the active meeting without leaving the in-progress list.</p>
+                    </div>
 
                       <MeetingExecutionContainer
                         meeting={meeting}
@@ -133,7 +153,7 @@ export function MeetingInProgressPage() {
         )}
       </RecordPanel>
 
-      {statusMessage ? <p>{statusMessage}</p> : null}
+      {statusMessage ? <p className={isError ? styles.errorMessage : styles.successMessage}>{statusMessage}</p> : null}
     </>
   );
 }

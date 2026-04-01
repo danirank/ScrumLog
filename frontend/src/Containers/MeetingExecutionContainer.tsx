@@ -333,7 +333,7 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
 
     try {
       const meetingPayload = buildMeetingPayload();
-      const updatedMeeting = await meetingService.update(props.meeting.id, {
+      await meetingService.update(props.meeting.id, {
         title,
         date,
         type: Number(type) as Meeting['type'],
@@ -346,14 +346,15 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
 
       await syncParticipants();
       await syncDailyEntries();
+      const refreshedMeeting = await meetingService.getById(props.meeting.id);
 
       setIsError(false);
-      setStatusMessage(status === 2 ? `Completed meeting ${updatedMeeting.title}.` : `Saved meeting ${updatedMeeting.title}.`);
+      setStatusMessage(status === 2 ? `Completed meeting ${refreshedMeeting.title}.` : `Saved meeting ${refreshedMeeting.title}.`);
 
       if (status === 2) {
-        props.onCompleted(updatedMeeting);
+        props.onCompleted(refreshedMeeting);
       } else {
-        props.onSaved(updatedMeeting);
+        props.onSaved(refreshedMeeting);
       }
     } catch (error) {
       setIsError(true);

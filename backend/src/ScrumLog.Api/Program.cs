@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
 using ScrumLog.Api.Core.Interfaces;
+using ScrumLog.Api.Core.Models;
 using ScrumLog.Api.Core.Services;
 using ScrumLog.Api.Data;
 using ScrumLog.Api.Data.Dtos;
@@ -36,8 +37,12 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod();
     });
 });
+builder.Services.Configure<MarkdownExportSettings>(
+    builder.Configuration.GetSection(MarkdownExportSettings.SectionName));
+
 builder.Services.AddDbContext<ScrumLogDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 builder.Services.AddScoped<ICrudRepository<Team>, TeamRepository>();
 builder.Services.AddScoped<ICrudRepository<Person>, PersonRepository>();
 builder.Services.AddScoped<ICrudRepository<Sprint>, SprintRepository>();
@@ -50,6 +55,7 @@ builder.Services.AddScoped<ICrudService<SprintDto, CreateSprintDto, UpdateSprint
 builder.Services.AddScoped<ICrudService<MeetingDto, CreateMeetingDto, UpdateMeetingDto>, MeetingService>();
 builder.Services.AddScoped<ICrudService<MeetingParticipantDto, CreateMeetingParticipantDto, UpdateMeetingParticipantDto>, MeetingParticipantService>();
 builder.Services.AddScoped<ICrudService<DailyMeetingEntryDto, CreateDailyMeetingEntryDto, UpdateDailyMeetingEntryDto>, DailyMeetingEntryService>();
+builder.Services.AddScoped<IMeetingMarkdownExportService, MeetingMarkdownExportService>();
 
 var app = builder.Build();
 

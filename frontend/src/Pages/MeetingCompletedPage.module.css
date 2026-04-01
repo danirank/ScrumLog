@@ -38,6 +38,18 @@
   color: var(--muted-text);
 }
 
+.exportButton {
+  align-self: flex-start;
+  border: 1px solid rgba(155, 67, 32, 0.18);
+  border-radius: 999px;
+  padding: 0.7rem 0.95rem;
+  background: rgba(255, 248, 240, 0.92);
+  color: var(--accent-strong);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .detailsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
@@ -77,6 +89,23 @@
   border-radius: 0.85rem;
   border: 1px solid rgba(177, 142, 108, 0.18);
   background: rgba(244, 236, 226, 0.72);
+}
+
+.successMessage,
+.errorMessage {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 0.9rem;
+}
+
+.successMessage {
+  background: rgba(187, 247, 208, 0.45);
+  color: #14532d;
+}
+
+.errorMessage {
+  background: rgba(254, 226, 226, 0.72);
+  color: #991b1b;
 }
 
 @media (max-width: 768px) {

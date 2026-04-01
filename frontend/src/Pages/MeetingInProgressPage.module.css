@@ -23,3 +23,20 @@
 .detailsHeader p {
   color: var(--muted-text);
 }
+
+.successMessage,
+.errorMessage {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  border-radius: 0.9rem;
+}
+
+.successMessage {
+  background: rgba(187, 247, 208, 0.45);
+  color: #14532d;
+}
+
+.errorMessage {
+  background: rgba(254, 226, 226, 0.72);
+  color: #991b1b;
+}
