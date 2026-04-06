@@ -237,7 +237,7 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
       return {
         notes: 'Daily meeting entries are attached per participant.',
         decisions: null,
-        actions: null,
+        actions: actions.trim() ? actions : null,
       };
     }
 

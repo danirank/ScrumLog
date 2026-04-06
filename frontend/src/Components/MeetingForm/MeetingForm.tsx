@@ -148,6 +148,9 @@ export function MeetingForm(props: MeetingFormProps) {
             );
           })
         )}
+        <FormField label="Actions">
+          <textarea value={props.actions} onChange={(event) => props.onActionsChange(event.target.value)} readOnly={lockedFields.actions} />
+        </FormField>
       </>
     );
   }
