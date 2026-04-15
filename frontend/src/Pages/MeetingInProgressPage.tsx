@@ -142,7 +142,6 @@ export function MeetingInProgressPage() {
                         meeting={meeting}
                         onSaved={handleMeetingSaved}
                         onCompleted={handleMeetingCompleted}
-                        lockFilledFields
                       />
                     </div>
                   ) : null}

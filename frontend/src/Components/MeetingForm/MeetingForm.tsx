@@ -159,17 +159,20 @@ export function MeetingForm(props: MeetingFormProps) {
     return (
       <>
         <h3>Review details</h3>
-        <FormField label="What was demonstrated">
-          <textarea value={props.demonstrated} onChange={(event) => props.onDemonstratedChange(event.target.value)} required readOnly={lockedFields.demonstrated} />
-        </FormField>
-        <FormField label="What was completed">
+        <FormField label="Sprint Goal">
           <textarea value={props.completed} onChange={(event) => props.onCompletedChange(event.target.value)} required readOnly={lockedFields.completed} />
+        </FormField>
+        <FormField label="Demo (What was demonstrated)">
+          <textarea value={props.demonstrated} onChange={(event) => props.onDemonstratedChange(event.target.value)} required readOnly={lockedFields.demonstrated} />
         </FormField>
         <FormField label="Feedback">
           <textarea value={props.feedback} onChange={(event) => props.onFeedbackChange(event.target.value)} required readOnly={lockedFields.feedback} />
         </FormField>
-        <FormField label="Follow-up items">
+        <FormField label="Changes / Insights">
           <textarea value={props.followUpItems} onChange={(event) => props.onFollowUpItemsChange(event.target.value)} required readOnly={lockedFields.followUpItems} />
+        </FormField>
+        <FormField label="Next steps">
+          <textarea value={props.actions} onChange={(event) => props.onActionsChange(event.target.value)} required readOnly={lockedFields.actions} />
         </FormField>
       </>
     );

@@ -27,15 +27,25 @@ function parseGeneralMeetingNotes(notes: string | null) {
 }
 
 function parseReviewContent(notes: string | null, decisions: string | null, actions: string | null) {
+  const sprintGoal = notes?.startsWith('Sprint Goal:\n')
+    ? notes.split('\n\nDemo:\n')[0]?.replace('Sprint Goal:\n', '') ?? ''
+    : '';
+  const demonstrated = notes?.includes('\n\nDemo:\n')
+    ? notes.split('\n\nDemo:\n')[1] ?? ''
+    : '';
+  const feedback = decisions?.startsWith('Feedback:\n')
+    ? decisions.split('\n\nChanges / Insights:\n')[0]?.replace('Feedback:\n', '') ?? ''
+    : '';
+  const changesOrInsights = decisions?.includes('\n\nChanges / Insights:\n')
+    ? decisions.split('\n\nChanges / Insights:\n')[1] ?? ''
+    : '';
+
   return {
-    demonstrated: notes?.startsWith('Demonstrated:\n')
-      ? notes.split('\n\nCompleted:\n')[0]?.replace('Demonstrated:\n', '') ?? ''
-      : '',
-    completed: notes?.includes('\n\nCompleted:\n')
-      ? notes.split('\n\nCompleted:\n')[1] ?? ''
-      : '',
-    feedback: decisions?.replace('Feedback:\n', '') ?? '',
-    followUpItems: actions?.replace('Follow-up items:\n', '') ?? '',
+    demonstrated,
+    completed: sprintGoal,
+    feedback,
+    followUpItems: changesOrInsights,
+    actions: actions?.replace('Next steps:\n', '') ?? '',
   };
 }
 
@@ -87,7 +97,6 @@ export function mapMeetingToMarkdownExportRequest(
             ? context.notes ?? null
             : null,
     decisions: context.meetingType === 0 || context.meetingType === 4 ? context.decisions ?? null : null,
-    actions: context.meetingType === 0 || context.meetingType === 3 || context.meetingType === 4 ? context.actions ?? null : null,
     dailyEntries: context.meetingType === 1
       ? dailyEntries
         .filter((entry) => entry.meetingId === context.meetingId)
@@ -105,6 +114,7 @@ export function mapMeetingToMarkdownExportRequest(
     completed: context.meetingType === 2 ? reviewContent.completed : null,
     feedback: context.meetingType === 2 ? reviewContent.feedback : null,
     followUpItems: context.meetingType === 2 ? reviewContent.followUpItems : null,
+    actions: context.meetingType === 2 ? reviewContent.actions : context.meetingType === 0 || context.meetingType === 3 || context.meetingType === 4 ? context.actions ?? null : null,
     wentWell: context.meetingType === 3 ? retrospectiveContent.wentWell : null,
     wentLessWell: context.meetingType === 3 ? retrospectiveContent.wentLessWell : null,
     improvements: context.meetingType === 3 ? retrospectiveContent.improvements : null,

@@ -41,18 +41,25 @@ function parseGeneralMeetingNotes(notes: string | null) {
 }
 
 function parseReviewMeetingContent(notes: string | null, decisions: string | null, actions: string | null) {
-  const demonstrated = notes?.startsWith('Demonstrated:\n')
-    ? notes.split('\n\nCompleted:\n')[0]?.replace('Demonstrated:\n', '') ?? ''
+  const sprintGoal = notes?.startsWith('Sprint Goal:\n')
+    ? notes.split('\n\nDemo:\n')[0]?.replace('Sprint Goal:\n', '') ?? ''
     : '';
-  const completed = notes?.includes('\n\nCompleted:\n')
-    ? notes.split('\n\nCompleted:\n')[1] ?? ''
+  const demonstrated = notes?.includes('\n\nDemo:\n')
+    ? notes.split('\n\nDemo:\n')[1] ?? ''
+    : '';
+  const feedback = decisions?.startsWith('Feedback:\n')
+    ? decisions.split('\n\nChanges / Insights:\n')[0]?.replace('Feedback:\n', '') ?? ''
+    : '';
+  const changesOrInsights = decisions?.includes('\n\nChanges / Insights:\n')
+    ? decisions.split('\n\nChanges / Insights:\n')[1] ?? ''
     : '';
 
   return {
+    sprintGoal,
     demonstrated,
-    completed,
-    feedback: decisions?.replace('Feedback:\n', '') ?? '',
-    followUpItems: actions?.replace('Follow-up items:\n', '') ?? '',
+    feedback,
+    followUpItems: changesOrInsights,
+    nextSteps: actions?.replace('Next steps:\n', '') ?? '',
   };
 }
 
@@ -140,7 +147,7 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
   );
   const [actions, setActions] = useState(
     props.meeting.type === 2
-      ? ''
+      ? parsedReview.nextSteps
       : props.meeting.type === 3
         ? parsedRetrospective.actions
         : props.meeting.type === 4
@@ -148,7 +155,7 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
           : (props.meeting.actions ?? ''),
   );
   const [demonstrated, setDemonstrated] = useState(parsedReview.demonstrated);
-  const [completed, setCompleted] = useState(parsedReview.completed);
+  const [completed, setCompleted] = useState(parsedReview.sprintGoal);
   const [feedback, setFeedback] = useState(parsedReview.feedback);
   const [followUpItems, setFollowUpItems] = useState(parsedReview.followUpItems);
   const [wentWell, setWentWell] = useState(parsedRetrospective.wentWell);
@@ -243,9 +250,9 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
 
     if (type === 2) {
       return {
-        notes: `Demonstrated:\n${demonstrated}\n\nCompleted:\n${completed}`,
-        decisions: `Feedback:\n${feedback}`,
-        actions: `Follow-up items:\n${followUpItems}`,
+        notes: `Sprint Goal:\n${completed}\n\nDemo:\n${demonstrated}`,
+        decisions: `Feedback:\n${feedback}\n\nChanges / Insights:\n${followUpItems}`,
+        actions: `Next steps:\n${actions}`,
       };
     }
 
@@ -282,7 +289,7 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
       }
     }
 
-    if (type === 2 && (!demonstrated.trim() || !completed.trim() || !feedback.trim() || !followUpItems.trim())) {
+    if (type === 2 && (!completed.trim() || !demonstrated.trim() || !feedback.trim() || !followUpItems.trim() || !actions.trim())) {
       return 'Fill in all Review meeting fields.';
     }
 
@@ -419,14 +426,14 @@ export function MeetingExecutionContainer(props: MeetingExecutionContainerProps)
             ? parsedSprintPlanning.definitionOfDone.trim().length > 0
             : (props.meeting.decisions ?? '').trim().length > 0,
         actions: props.meeting.type === 2
-          ? parsedReview.followUpItems.trim().length > 0
+          ? parsedReview.nextSteps.trim().length > 0
           : props.meeting.type === 3
             ? parsedRetrospective.actions.trim().length > 0
             : props.meeting.type === 4
               ? parsedSprintPlanning.sprintGoal.trim().length > 0
               : (props.meeting.actions ?? '').trim().length > 0,
         demonstrated: parsedReview.demonstrated.trim().length > 0,
-        completed: parsedReview.completed.trim().length > 0,
+        completed: parsedReview.sprintGoal.trim().length > 0,
         feedback: parsedReview.feedback.trim().length > 0,
         followUpItems: parsedReview.followUpItems.trim().length > 0,
         wentWell: parsedRetrospective.wentWell.trim().length > 0,
